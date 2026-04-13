@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OptimizeRx — Scroll X Animation</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- ── Demo context above the component ──────────────────── -->
+  <div class="demo-spacer">
+    <p>Scroll down</p>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════
+       SCROLL SCENE — this becomes the Webflow component
+       Attributes:
+         data-scroll-scene        → marks the pinned section
+         data-slide               → each slide panel
+         data-anim="left|right"   → text blocks (±60 px travel)
+         data-anim="x-a|x-b"     → X bar halves (±offset, clipped)
+         data-dot                 → progress indicator buttons
+       ════════════════════════════════════════════════════════ -->
+  <section class="scroll-scene" data-scroll-scene>
+
+    <!-- Left-edge dot navigation -->
+    <nav class="dot-nav" aria-label="Slide navigation">
+      <button class="dot is-active" data-dot="0" aria-label="Slide 1"></button>
+      <button class="dot"           data-dot="1" aria-label="Slide 2"></button>
+      <button class="dot"           data-dot="2" aria-label="Slide 3"></button>
+      <button class="dot"           data-dot="3" aria-label="Slide 4"></button>
+    </nav>
+
+    <!-- Slides container -->
+    <div class="slides-wrap">
+
+      <!-- ── SLIDE 1 ─────────────────────────────────────── -->
+      <article class="slide" data-slide="0">
+
+        <!-- Left label -->
+        <div class="side-label side-label--left" data-anim="left">
+          <svg class="arrow-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M5 12h14M12 5l7 7-7 7"/>
+          </svg>
+          <span>HCP Marketer</span>
+        </div>
+
+        <!-- X graphic (two bars, each animated independently) -->
+        <div class="x-stage">
+          <div class="x-wrap">
+            <div class="x-bar x-bar--a" data-anim="x-a"></div>
+            <div class="x-bar x-bar--b" data-anim="x-b"></div>
+          </div>
+
+          <!-- Icon badges below the X (data-anim="up" → fade + slide from below) -->
+          <div class="badges" data-anim="up">
+            <div class="badge">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+              <span>Performance</span>
+            </div>
+            <div class="badge">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              <span>Privacy</span>
+            </div>
+            <div class="badge">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+              <span>Outcomes</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right label -->
+        <div class="side-label side-label--right" data-anim="right">
+          <span>DTC Marketer</span>
+          <svg class="arrow-icon arrow-icon--flip" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M5 12h14M12 5l7 7-7 7"/>
+          </svg>
+        </div>
+
+      </article>
+
+      <!-- ── SLIDE 2 ─────────────────────────────────────── -->
+      <article class="slide" data-slide="1">
+
+        <div class="side-label side-label--left" data-anim="left">
+          <svg class="arrow-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M5 12h14M12 5l7 7-7 7"/>
+          </svg>
+          <span>Clinical Journey</span>
+        </div>
+
+        <div class="x-stage">
+          <div class="x-wrap">
+            <div class="x-bar x-bar--a" data-anim="x-a"></div>
+            <div class="x-bar x-bar--b" data-anim="x-b"></div>
+          </div>
+          <div class="badges" data-anim="up">
+            <div class="badge">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+              <span>Pharma</span>
+            </div>
+            <div class="badge">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+              <span>Agency</span>
+            </div>
+            <div class="badge">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+              <span>Timing</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="side-label side-label--right" data-anim="right">
+          <span>Personal Context</span>
+          <svg class="arrow-icon arrow-icon--flip" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M5 12h14M12 5l7 7-7 7"/>
+          </svg>
+        </div>
+
+      </article>
+
+      <!-- ── SLIDE 3 ─────────────────────────────────────── -->
+      <article class="slide" data-slide="2">
+
+        <div class="side-label side-label--left" data-anim="left">
+          <svg class="arrow-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M5 12h14M12 5l7 7-7 7"/>
+          </svg>
+          <span>Audience</span>
+        </div>
+
+        <div class="x-stage">
+          <div class="x-wrap">
+            <div class="x-bar x-bar--a" data-anim="x-a"></div>
+            <div class="x-bar x-bar--b" data-anim="x-b"></div>
+          </div>
+          <div class="badges" data-anim="up">
+            <div class="badge">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+              <span>Messaging</span>
+            </div>
+            <div class="badge">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+              <span>Reach</span>
+            </div>
+            <div class="badge">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+              <span>Precision</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="side-label side-label--right" data-anim="right">
+          <span>Channel</span>
+          <svg class="arrow-icon arrow-icon--flip" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M5 12h14M12 5l7 7-7 7"/>
+          </svg>
+        </div>
+
+      </article>
+
+      <!-- ── SLIDE 4 ─────────────────────────────────────── -->
+      <article class="slide" data-slide="3">
+
+        <div class="side-label side-label--left" data-anim="left">
+          <svg class="arrow-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M5 12h14M12 5l7 7-7 7"/>
+          </svg>
+          <span>Brand Strategy</span>
+        </div>
+
+        <div class="x-stage">
+          <div class="x-wrap">
+            <div class="x-bar x-bar--a" data-anim="x-a"></div>
+            <div class="x-bar x-bar--b" data-anim="x-b"></div>
+          </div>
+          <div class="badges" data-anim="up">
+            <div class="badge">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+              <span>ROI</span>
+            </div>
+            <div class="badge">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+              <span>Growth</span>
+            </div>
+            <div class="badge">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
+              <span>Intelligence</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="side-label side-label--right" data-anim="right">
+          <span>Market Access</span>
+          <svg class="arrow-icon arrow-icon--flip" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M5 12h14M12 5l7 7-7 7"/>
+          </svg>
+        </div>
+
+      </article>
+
+    </div><!-- /.slides-wrap -->
+
+  </section><!-- /.scroll-scene -->
+
+  <!-- ── Demo context below ──────────────────────────────── -->
+  <div class="demo-spacer">
+    <p>Content continues here</p>
+  </div>
+
+  <!-- GSAP + ScrollTrigger via CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>

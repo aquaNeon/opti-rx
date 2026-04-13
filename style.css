@@ -1,0 +1,242 @@
+/* ════════════════════════════════════════════════════════════════
+   OptimizeRx — Scroll X Animation
+   Component-scoped styles, Webflow-ready.
+   ════════════════════════════════════════════════════════════════ */
+
+/* ── Reset ───────────────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* ── Design tokens ───────────────────────────────────────────── */
+:root {
+  --bg:           #07091a;
+  --x-color:      #4561e0;        /* vivid blue X bars          */
+  --x-color-glow: #3a52c7;        /* subtle depth on bar edge   */
+  --text:         #ffffff;
+  --text-muted:   rgba(255,255,255,0.55);
+  --dot-idle:     #7a2222;        /* dark red dot               */
+  --dot-active:   #e03535;        /* bright red active dot      */
+  --arrow-color:  rgba(255,255,255,0.7);
+
+  /* X dimensions */
+  --x-size:       clamp(220px, 32vmin, 340px);
+  --bar-thick:    clamp(32px, 5vmin, 52px);
+  --bar-radius:   999px;          /* fully rounded ends         */
+}
+
+/* ── Page base (demo context only) ──────────────────────────── */
+html { scroll-behavior: auto; }   /* GSAP controls all scrolling */
+
+body {
+  background: #f5f2ed;            /* warm page background       */
+  color: var(--text);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  overflow-x: hidden;
+}
+
+/* ── Demo spacers (not part of the Webflow component) ───────── */
+.demo-spacer {
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #999;
+  font-size: 0.85rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+/* ════════════════════════════════════════════════════════════════
+   SCROLL SCENE — the Webflow component root
+   ════════════════════════════════════════════════════════════════ */
+.scroll-scene {
+  position: relative;
+  width: 100%;
+  height: 100vh;
+  background: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;             /* clips X bars during transition */
+}
+
+/* ── Slides wrapper ──────────────────────────────────────────── */
+.slides-wrap {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+/* ── Individual slide ────────────────────────────────────────── */
+.slide {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  column-gap: clamp(1.5rem, 4vw, 4rem);
+  /* Horizontal padding leaves room for dot-nav on the left */
+  padding: 0 clamp(3rem, 6vw, 6rem) 0 clamp(5rem, 8vw, 8rem);
+}
+
+/* ════════════════════════════════════════════════════════════════
+   X GRAPHIC
+   Two bars (x-bar--a and x-bar--b) are positioned inside
+   .x-wrap (overflow: hidden). Each bar is wider than the container
+   so it fully covers the diagonal even at the corners.
+   At rest: both bars centered, forming a perfect X.
+   Animated out: bars translate ± so they appear to slide apart.
+   ════════════════════════════════════════════════════════════════ */
+.x-stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(1.5rem, 3vh, 2.5rem);
+  flex-shrink: 0;
+}
+
+.x-wrap {
+  position: relative;
+  width: var(--x-size);
+  height: var(--x-size);
+  /* Clip the bars so they don't bleed outside the X bounding box */
+  overflow: hidden;
+}
+
+.x-bar {
+  position: absolute;
+  /* 142% ensures the bar reaches corner-to-corner on a square (√2 ≈ 1.414) */
+  width: 142%;
+  height: var(--bar-thick);
+  background: var(--x-color);
+  border-radius: var(--bar-radius);
+
+  /* Center the bar vertically and horizontally within the square */
+  top: calc(50% - var(--bar-thick) / 2);
+  left: -21%;       /* (100% - 142%) / 2 */
+
+  /* GPU-accelerated properties only */
+  will-change: transform, opacity;
+}
+
+/* Bar A: top-left → bottom-right  (\) */
+.x-bar--a { transform: rotate(45deg); }
+
+/* Bar B: top-right → bottom-left  (/) */
+.x-bar--b { transform: rotate(-45deg); }
+
+/* ── Icon badges below the X ─────────────────────────────────── */
+.badges {
+  display: flex;
+  gap: clamp(1rem, 2vw, 2rem);
+  align-items: center;
+}
+
+.badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--text-muted);
+  font-size: clamp(0.6rem, 1vw, 0.75rem);
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.badge svg {
+  width: clamp(16px, 2.2vw, 22px);
+  height: clamp(16px, 2.2vw, 22px);
+  stroke: var(--text-muted);
+  fill: none;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  flex-shrink: 0;
+}
+
+/* ════════════════════════════════════════════════════════════════
+   SIDE LABELS  (left and right of the X)
+   ════════════════════════════════════════════════════════════════ */
+.side-label {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: clamp(0.75rem, 1.4vw, 1rem);
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: var(--text);
+  will-change: transform, opacity;
+}
+
+.side-label--left  { justify-content: flex-end; }
+.side-label--right { justify-content: flex-start; }
+
+.arrow-icon {
+  width: clamp(14px, 1.8vw, 20px);
+  height: clamp(14px, 1.8vw, 20px);
+  stroke: var(--arrow-color);
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  flex-shrink: 0;
+}
+
+/* The right-side arrow points left (←) */
+.arrow-icon--flip { transform: rotate(180deg); }
+
+/* ════════════════════════════════════════════════════════════════
+   DOT NAVIGATION
+   ════════════════════════════════════════════════════════════════ */
+.dot-nav {
+  position: absolute;
+  left: clamp(1rem, 2.5vw, 2rem);
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  z-index: 100;
+  list-style: none;
+}
+
+.dot {
+  display: block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--dot-idle);
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  transition: background 0.25s ease, transform 0.25s ease;
+}
+
+.dot.is-active {
+  background: var(--dot-active);
+  transform: scale(1.35);
+}
+
+/* ── Responsive: tighten layout on narrow screens ────────────── */
+@media (max-width: 600px) {
+  .slide {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto auto;
+    padding: 2rem 1.5rem 2rem 3rem;
+    row-gap: 1.5rem;
+    justify-items: center;
+    text-align: center;
+  }
+
+  .side-label--left,
+  .side-label--right {
+    justify-content: center;
+  }
+
+  .arrow-icon,
+  .arrow-icon--flip { display: none; }
+}
