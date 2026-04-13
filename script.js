@@ -1,37 +1,57 @@
 /* ════════════════════════════════════════════════════════════════
-   OptimizeRx — Scroll X Animation
-   Requires: GSAP 3.x + ScrollTrigger plugin
+   OptimizeRx — Scroll X Animation  v3
+   Requires: GSAP 3.x + ScrollTrigger
 
-   HOW IT WORKS
-   ─────────────
-   • The section is pinned for (numSlides − 1) × 100 vh of scroll.
-   • A single GSAP timeline drives all transitions. ScrollTrigger
-     maps the pinned scroll distance to that timeline (scrub).
-   • Per transition (1 unit of timeline time):
-       0.00 → 0.45  EXIT current slide   (elements slide out to sides)
-       0.55 → 1.00  ENTER next slide     (elements slide in from sides)
-     The 0.10-unit gap is a clean beat between exit and entry.
-   • X bars travel X_OFFSET px; text labels travel TXT_OFFSET px.
-     This layered offset creates a parallax depth between the X
-     graphic and the surrounding copy.
+   ANIMATION MODEL
+   ───────────────
+   Each slide owns one .x-wrap with two .x-half images (left.svg
+   and right.svg). All x-wraps sit at the same centre point in the
+   viewport because every .slide is position:absolute over the others.
 
-   WEBFLOW DATA ATTRIBUTES
-   ────────────────────────
-   data-scroll-scene    → outer section wrapper
-   data-slide           → each slide article  (value = 0-based index)
-   data-anim="x-a"      → X bar  \  (animates from/to left)
-   data-anim="x-b"      → X bar  /  (animates from/to right)
-   data-anim="left"     → left text label
-   data-anim="right"    → right text label
-   data-anim="up"       → badges / elements that fade + rise from below
-   data-dot             → nav dot button    (value = slide index)
+   THREE DEPTH LAYERS are always visible simultaneously, giving the
+   perspective-recession illusion from the reference images:
+
+     front  scale 1.00  opacity 1.00   ← current / assembling
+     mid    scale 0.68  opacity 0.48   ← one slide back
+     back   scale 0.48  opacity 0.18   ← two slides back
+     gone   scale 0.34  opacity 0.00   ← three+ slides back (hidden)
+
+   TWO SEPARATE ANIMATION CHANNELS per slide:
+
+   1. ASSEMBLY  (.x-half images, data-anim="x-a" / "x-b")
+      Left half:  x  −OFFSET → 0   (slides INWARD from left, once only)
+      Right half: x  +OFFSET → 0   (slides INWARD from right, once only)
+      opacity: 0 → 1 while converging so bars materialise as they meet.
+      After assembly the halves NEVER travel outward — they stay at x:0
+      while the wrap handles all further movement.
+
+   2. DEPTH  (.x-wrap)
+      front → mid → back → gone via scale + opacity on the whole wrap.
+      The assembled halves ride along passively — zero additional motion.
+
+   TIMELINE STRUCTURE  (1 unit per transition, n−1 transitions total)
+   ──────────────────
+     p + 0.00 … p + 0.55   ASSEMBLE  new halves + text slide to centre
+     p + 0.15 … p + 1.00   DEPTH     all visible x-wraps step one level back
+                            (overlap creates a smooth layered feel)
+
+   WEBFLOW ATTRIBUTES
+   ──────────────────
+   data-scroll-scene   outer section wrapper
+   data-slide          slide article (0-based index value)
+   data-anim="x-a"     left  SVG half  → animates left  → 0
+   data-anim="x-b"     right SVG half  → animates right → 0
+   data-anim="left"    left  text label
+   data-anim="right"   right text label
+   data-anim="up"      badges (rise from below)
+   data-dot            nav dot button
    ════════════════════════════════════════════════════════════════ */
 
 gsap.registerPlugin(ScrollTrigger);
 
 (function () {
 
-  /* ── Locate elements ───────────────────────────────────────── */
+  /* ── Element lookup ────────────────────────────────────────── */
   const scene  = document.querySelector('[data-scroll-scene]');
   if (!scene) return;
 
@@ -40,159 +60,132 @@ gsap.registerPlugin(ScrollTrigger);
   const n      = slides.length;
   if (n < 2) return;
 
-  /* ── Travel offsets ────────────────────────────────────────────
-     X bars use a larger offset so the two halves look clearly
-     split before they meet. Because .x-wrap has overflow:hidden,
-     bars are clipped at the container edge during the travel —
-     making them look like they emerge from inside the X box.
-     Text labels use a shorter, gentler travel.
-     Badges (data-anim="up") fade and rise slightly from below.  */
-  const X_OFFSET   = 130;   // px — X bar travel (left bar goes −, right bar +)
-  const TXT_OFFSET = 50;    // px — text label travel
-  const UP_OFFSET  = 24;    // px — badge fade-up distance
+  /* ── Constants ─────────────────────────────────────────────── */
+  const X_OFFSET   = 140;   // px — how far each SVG half slides inward
+  const TXT_OFFSET = 52;    // px — text label travel
+  const UP_OFFSET  = 22;    // px — badge rise distance
 
-  /* ── Helper: get animated child elements of a slide ─────────── */
-  function anims(slide) {
+  /* Depth levels applied to .x-wrap (the whole assembled X) */
+  const DEPTH = {
+    front: { scale: 1.00, opacity: 1.00 },
+    mid:   { scale: 0.68, opacity: 0.48 },
+    back:  { scale: 0.48, opacity: 0.18 },
+    gone:  { scale: 0.34, opacity: 0.00 },
+  };
+
+  /* ── Per-slide element references ──────────────────────────── */
+  function refs(slide) {
     return {
-      xa:   slide.querySelectorAll('[data-anim="x-a"]'),
-      xb:   slide.querySelectorAll('[data-anim="x-b"]'),
-      left: slide.querySelectorAll('[data-anim="left"]'),
-      rght: slide.querySelectorAll('[data-anim="right"]'),
-      up:   slide.querySelectorAll('[data-anim="up"]'),
+      xwrap: slide.querySelector('.x-wrap'),      // depth target
+      xa:    slide.querySelectorAll('[data-anim="x-a"]'),  // left half
+      xb:    slide.querySelectorAll('[data-anim="x-b"]'),  // right half
+      left:  slide.querySelectorAll('[data-anim="left"]'),
+      rght:  slide.querySelectorAll('[data-anim="right"]'),
+      up:    slide.querySelectorAll('[data-anim="up"]'),
     };
   }
 
   /* ── Initial states ────────────────────────────────────────────
-     Slide 0 is already assembled and visible.
-     All other slides have their elements offset and invisible.   */
+     Slide 0: assembled and at front depth, all text visible.
+     Slides 1+: halves separated and invisible; x-wrap at full
+     scale so there's a clean baseline for the depth animation.   */
   slides.forEach((slide, i) => {
-    const a = anims(slide);
+    const r = refs(slide);
     if (i === 0) {
-      // Slide 0 is fully assembled at rest position
-      gsap.set([a.xa, a.xb, a.left, a.rght], { x: 0,         autoAlpha: 1 });
-      gsap.set(a.up,                           { y: 0,         autoAlpha: 1 });
+      gsap.set(r.xwrap,          { ...DEPTH.front });
+      gsap.set([r.xa, r.xb],     { x: 0,            opacity: 1  });
+      gsap.set([r.left, r.rght], { x: 0,             autoAlpha: 1 });
+      gsap.set(r.up,             { y: 0,             autoAlpha: 1 });
     } else {
-      // Other slides wait off to the sides at their respective travel distances
-      // (text at TXT_OFFSET, X bars at X_OFFSET — matches the enter tween deltas)
-      gsap.set(a.xa,   { x: -X_OFFSET,   autoAlpha: 0 });
-      gsap.set(a.xb,   { x:  X_OFFSET,   autoAlpha: 0 });
-      gsap.set(a.left, { x: -TXT_OFFSET, autoAlpha: 0 });
-      gsap.set(a.rght, { x:  TXT_OFFSET, autoAlpha: 0 });
-      gsap.set(a.up,   { y:  UP_OFFSET,  autoAlpha: 0 });
+      /* x-wrap at scale:1, opacity:1 but halves invisible →
+         the wrap appears empty until its halves assemble.        */
+      gsap.set(r.xwrap,  { scale: 1,         opacity: 1 });
+      gsap.set(r.xa,     { x: -X_OFFSET,     opacity: 0 });
+      gsap.set(r.xb,     { x:  X_OFFSET,     opacity: 0 });
+      gsap.set(r.left,   { x: -TXT_OFFSET,   autoAlpha: 0 });
+      gsap.set(r.rght,   { x:  TXT_OFFSET,   autoAlpha: 0 });
+      gsap.set(r.up,     { y:  UP_OFFSET,    autoAlpha: 0 });
     }
   });
 
-  /* ── Master timeline ───────────────────────────────────────── */
+  /* ── Master timeline ───────────────────────────────────────────
+     For each transition i → i+1 at base position p = i:          */
   const tl = gsap.timeline();
 
   for (let i = 0; i < n - 1; i++) {
-    const cur = anims(slides[i]);
-    const nxt = anims(slides[i + 1]);
-    const p   = i;               // base timeline position
+    const cur  = refs(slides[i]);
+    const nxt  = refs(slides[i + 1]);
+    const prev = i >= 1 ? refs(slides[i - 1]) : null;
+    const old  = i >= 2 ? refs(slides[i - 2]) : null;
+    const p    = i;
 
-    /* ── EXIT current ──────────────────────────────────────── */
+    /* ── 1.  ASSEMBLE: left/right halves + text converge to 0 ── */
 
-    // X bar \ slides back to the left
-    tl.to(cur.xa, {
-      x: -X_OFFSET, autoAlpha: 0,
-      duration: 0.45, ease: 'none',
-    }, p);
+    // Left SVG half slides in from the left
+    tl.to(nxt.xa, { x: 0, opacity: 1, duration: 0.55, ease: 'none' }, p);
 
-    // X bar / slides back to the right
-    tl.to(cur.xb, {
-      x:  X_OFFSET, autoAlpha: 0,
-      duration: 0.45, ease: 'none',
-    }, p);
+    // Right SVG half slides in from the right
+    tl.to(nxt.xb, { x: 0, opacity: 1, duration: 0.55, ease: 'none' }, p);
 
-    // Left text fades and drifts left (shorter travel)
-    tl.to(cur.left, {
-      x: -TXT_OFFSET, autoAlpha: 0,
-      duration: 0.45, ease: 'none',
-    }, p);
+    // Left label slides inward (never moves outward on exit — only fades)
+    tl.to(nxt.left, { x: 0, autoAlpha: 1, duration: 0.55, ease: 'none' }, p);
 
-    // Right text fades and drifts right
-    tl.to(cur.rght, {
-      x:  TXT_OFFSET, autoAlpha: 0,
-      duration: 0.45, ease: 'none',
-    }, p);
+    // Right label slides inward
+    tl.to(nxt.rght, { x: 0, autoAlpha: 1, duration: 0.55, ease: 'none' }, p);
 
-    // Badges fade and drop down
-    tl.to(cur.up, {
-      y: UP_OFFSET, autoAlpha: 0,
-      duration: 0.45, ease: 'none',
-    }, p);
+    // Badges rise up
+    tl.to(nxt.up, { y: 0, autoAlpha: 1, duration: 0.55, ease: 'none' }, p);
 
-    /* ── ENTER next ────────────────────────────────────────── */
-    // (nxt elements start hidden at ±offset — set by initial state
-    //  or left there by a previous exit tween)
+    /* ── 2.  DEPTH: step every visible X one level further back ─ */
+    const pushStart = p + 0.15;
+    const pushDur   = 0.85;
 
-    // X bar \ comes in from the left
-    tl.to(nxt.xa, {
-      x: 0, autoAlpha: 1,
-      duration: 0.45, ease: 'none',
-    }, p + 0.55);
+    // Current (front → mid) — assembled halves stay at x:0, wrap recedes
+    tl.to(cur.xwrap, { ...DEPTH.mid, duration: pushDur, ease: 'none' }, pushStart);
+    // Text of current fades in place — never travels outward
+    tl.to([cur.left, cur.rght, cur.up], { autoAlpha: 0, duration: 0.28, ease: 'none' }, pushStart);
 
-    // X bar / comes in from the right
-    tl.to(nxt.xb, {
-      x: 0, autoAlpha: 1,
-      duration: 0.45, ease: 'none',
-    }, p + 0.55);
+    // Previous (mid → back)
+    if (prev) {
+      tl.to(prev.xwrap, { ...DEPTH.back, duration: pushDur, ease: 'none' }, pushStart);
+    }
 
-    // Left text drifts in from the left
-    tl.to(nxt.left, {
-      x: 0, autoAlpha: 1,
-      duration: 0.45, ease: 'none',
-    }, p + 0.55);
-
-    // Right text drifts in from the right
-    tl.to(nxt.rght, {
-      x: 0, autoAlpha: 1,
-      duration: 0.45, ease: 'none',
-    }, p + 0.55);
-
-    // Badges rise up into position
-    tl.to(nxt.up, {
-      y: 0, autoAlpha: 1,
-      duration: 0.45, ease: 'none',
-    }, p + 0.55);
+    // Oldest (back → gone)
+    if (old) {
+      tl.to(old.xwrap, { ...DEPTH.gone, duration: pushDur * 0.6, ease: 'none' }, pushStart);
+    }
   }
 
-  /* ── ScrollTrigger: pin the section, scrub the timeline ─────── */
+  /* ── ScrollTrigger ─────────────────────────────────────────── */
   ScrollTrigger.create({
     trigger:    scene,
     pin:        true,
     pinSpacing: true,
     start:      'top top',
-    // Total pinned scroll = (n-1) full viewport heights
     end:        () => `+=${(n - 1) * window.innerHeight}`,
-    // scrub value (seconds) = how long the playhead chases the scroll.
-    // Higher = more inertia / "weighted" feel.
-    scrub:      1.5,
+    scrub:      1.5,        // weighted lag gives the "pushing back" weight
     animation:  tl,
 
     onUpdate(self) {
-      // Highlight the dot that corresponds to the current slide
-      const raw    = self.progress * (n - 1);
-      const active = Math.min(Math.round(raw), n - 1);
-      dots.forEach((dot, i) => dot.classList.toggle('is-active', i === active));
+      const idx = Math.min(Math.round(self.progress * (n - 1)), n - 1);
+      dots.forEach((d, i) => d.classList.toggle('is-active', i === idx));
     },
   });
 
-  /* ── Dot click → smooth-scroll to that slide ────────────────── */
+  /* ── Dot click → scroll to that slide ─────────────────────── */
   dots.forEach((dot, i) => {
     dot.addEventListener('click', () => {
-      const sceneTop   = scene.getBoundingClientRect().top + window.scrollY;
-      const totalExtra = (n - 1) * window.innerHeight;
-      const target     = sceneTop + (i / (n - 1)) * totalExtra;
-      window.scrollTo({ top: target, behavior: 'smooth' });
+      const top   = scene.getBoundingClientRect().top + window.scrollY;
+      const extra = (n - 1) * window.innerHeight;
+      window.scrollTo({ top: top + (i / (n - 1)) * extra, behavior: 'smooth' });
     });
   });
 
-  /* ── Refresh on resize so pin dimensions stay accurate ──────── */
-  let resizeTimer;
+  /* ── Resize ─────────────────────────────────────────────────── */
+  let raf;
   window.addEventListener('resize', () => {
-    clearTimeout(resizeTimer);
-    resizeTimer = setTimeout(() => ScrollTrigger.refresh(), 200);
+    cancelAnimationFrame(raf);
+    raf = requestAnimationFrame(() => ScrollTrigger.refresh());
   });
 
 })();

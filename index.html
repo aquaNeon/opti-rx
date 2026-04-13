@@ -16,11 +16,14 @@
   <!-- ════════════════════════════════════════════════════════
        SCROLL SCENE — this becomes the Webflow component
        Attributes:
-         data-scroll-scene        → marks the pinned section
-         data-slide               → each slide panel
-         data-anim="left|right"   → text blocks (±60 px travel)
-         data-anim="x-a|x-b"     → X bar halves (±offset, clipped)
-         data-dot                 → progress indicator buttons
+         data-scroll-scene       → pinned section root
+         data-slide              → each slide panel (0-based index)
+         data-anim="x-a"         → X bar \ — slides inward from left only
+         data-anim="x-b"         → X bar / — slides inward from right only
+         data-anim="left"        → left text label — slides inward, then fades
+         data-anim="right"       → right text label
+         data-anim="up"          → badges — rise from below, then fades
+         data-dot                → nav dot (value = slide index)
        ════════════════════════════════════════════════════════ -->
   <section class="scroll-scene" data-scroll-scene>
 
@@ -49,11 +52,11 @@
         <!-- X graphic (two bars, each animated independently) -->
         <div class="x-stage">
           <div class="x-wrap">
-            <div class="x-bar x-bar--a" data-anim="x-a"></div>
-            <div class="x-bar x-bar--b" data-anim="x-b"></div>
+            <img class="x-half x-half--left"  src="left.svg"  alt="" data-anim="x-a" draggable="false" aria-hidden="true">
+            <img class="x-half x-half--right" src="right.svg" alt="" data-anim="x-b" draggable="false" aria-hidden="true">
           </div>
 
-          <!-- Icon badges below the X (data-anim="up" → fade + slide from below) -->
+          <!-- Badges: rise from below on enter, fade on exit -->
           <div class="badges" data-anim="up">
             <div class="badge">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
@@ -92,8 +95,8 @@
 
         <div class="x-stage">
           <div class="x-wrap">
-            <div class="x-bar x-bar--a" data-anim="x-a"></div>
-            <div class="x-bar x-bar--b" data-anim="x-b"></div>
+            <img class="x-half x-half--left"  src="left.svg"  alt="" data-anim="x-a" draggable="false" aria-hidden="true">
+            <img class="x-half x-half--right" src="right.svg" alt="" data-anim="x-b" draggable="false" aria-hidden="true">
           </div>
           <div class="badges" data-anim="up">
             <div class="badge">
@@ -132,8 +135,8 @@
 
         <div class="x-stage">
           <div class="x-wrap">
-            <div class="x-bar x-bar--a" data-anim="x-a"></div>
-            <div class="x-bar x-bar--b" data-anim="x-b"></div>
+            <img class="x-half x-half--left"  src="left.svg"  alt="" data-anim="x-a" draggable="false" aria-hidden="true">
+            <img class="x-half x-half--right" src="right.svg" alt="" data-anim="x-b" draggable="false" aria-hidden="true">
           </div>
           <div class="badges" data-anim="up">
             <div class="badge">
@@ -172,8 +175,8 @@
 
         <div class="x-stage">
           <div class="x-wrap">
-            <div class="x-bar x-bar--a" data-anim="x-a"></div>
-            <div class="x-bar x-bar--b" data-anim="x-b"></div>
+            <img class="x-half x-half--left"  src="left.svg"  alt="" data-anim="x-a" draggable="false" aria-hidden="true">
+            <img class="x-half x-half--right" src="right.svg" alt="" data-anim="x-b" draggable="false" aria-hidden="true">
           </div>
           <div class="badges" data-anim="up">
             <div class="badge">
