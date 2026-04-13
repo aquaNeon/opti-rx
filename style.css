@@ -14,7 +14,7 @@
   --bg:          #070916;
   --text:        #f0eeff;
   --text-muted:  rgba(230,225,255,.42);
-  --label-color: rgba(255,255,255,.75);
+  --label-color: rgba(255,255,255,.92);
   --dot-idle:    #5a1515;
   --dot-active:  #e03535;
   --rule:        rgba(255,255,255,.06);
@@ -24,14 +24,12 @@
 
   /*
     X sizing — both SVGs share the same 259×626 viewBox.
-    We scale by height. Width of each half = 259/626 × height.
-    At --x-h the natural display width per half ≈ 0.4138 × --x-h.
-    The SVG tips are ~10 viewBox units inside the outer edges,
-    so the gap between tips = 10/626 × --x-h.
-    We close it with a negative left margin on the right half.
+    We scale by height. Width of each half ≈ 0.4138 × height.
+    Tips are ~10 viewBox units inside edges; gap closed with
+    a negative left margin on the right half.
   */
-  --x-h:         clamp(240px, 42vmin, 500px);  /* height of each SVG half    */
-  --x-gap-fix:   calc(-10 / 626 * var(--x-h)); /* ≈ −1.6% of height          */
+  --x-h:         clamp(240px, 42vmin, 500px);
+  --x-gap-fix:   calc(-10 / 626 * var(--x-h));
 }
 
 /* ── Page ────────────────────────────────────────────────────── */
@@ -59,36 +57,43 @@ body {
 
 /* ════════════════════════════════════════════════════════════════
    SCROLL SCENE
-   overflow:hidden clips the SVG halves only at the viewport
-   boundary — NOT at the x-wrap boundary (x-wrap has no clip).
+   Starts white — GSAP animates to dark navy when X #4 enters.
+   overflow:hidden clips SVG halves at viewport edge only.
    ════════════════════════════════════════════════════════════════ */
 .scroll-scene {
   position: relative;
   width: 100%;
   height: 100vh;
-  background: var(--bg);
+  background: #ffffff;
   overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-/* Radial glow centred on the X stack */
-.scroll-scene::before {
+/* ── Atmosphere — glow + grid, hidden until dark bg ─────────── */
+.scene-atmo {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Radial glow */
+.scene-atmo::before {
   content: '';
   position: absolute;
   inset: 0;
   background: radial-gradient(
     ellipse 55% 50% at 50% 50%,
-    rgba(74, 99, 232, .14) 0%,
+    rgba(74, 99, 232, .18) 0%,
     transparent 70%
   );
-  pointer-events: none;
-  z-index: 0;
 }
 
 /* Subtle grid */
-.scroll-scene::after {
+.scene-atmo::after {
   content: '';
   position: absolute;
   inset: 0;
@@ -96,8 +101,6 @@ body {
     linear-gradient(var(--rule) 1px, transparent 1px),
     linear-gradient(90deg, var(--rule) 1px, transparent 1px);
   background-size: 80px 80px;
-  pointer-events: none;
-  z-index: 0;
 }
 
 /* ════════════════════════════════════════════════════════════════
@@ -120,119 +123,138 @@ body {
   padding: 0 clamp(3rem, 6vw, 6rem) 0 clamp(5rem, 8vw, 8rem);
 }
 
+/* ── Final slide — centred single column ─────────────────────── */
+.slide--final {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 clamp(3rem, 8vw, 8rem);
+}
+
+/* ════════════════════════════════════════════════════════════════
+   LABEL PILLS
+   Rounded pill with dark semi-transparent bg, red dot, white text.
+   Dark bg works on both white (start) and dark (later) scenes.
+   ════════════════════════════════════════════════════════════════ */
+.label-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  background: rgba(7, 9, 22, 0.80);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, .10);
+  border-radius: 100px;
+  padding: 0.5rem 1.1rem;
+  font-family: var(--font-display);
+  font-size: clamp(0.62rem, 1.05vw, 0.82rem);
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--label-color);
+  will-change: transform, opacity;
+  white-space: nowrap;
+}
+
+.label-pill--left  { justify-self: end; }
+.label-pill--right { justify-self: start; }
+
+.pill-dot {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--dot-active);
+  box-shadow: 0 0 6px rgba(224, 53, 53, .65);
+  flex-shrink: 0;
+}
+
 /* ════════════════════════════════════════════════════════════════
    X GRAPHIC
-   ─────────────────────────────────────────────────────────────
-   .x-wrap   DEPTH target  — GSAP animates scale + opacity here.
-             Acts as the shared container for both SVG halves.
-             NO overflow:hidden so the halves slide in freely.
-
-   .x-half   ASSEMBLY target — GSAP animates x translate INWARD
-             only (left half: −offset → 0 ; right half: +offset → 0).
-             Once assembled the halves never move outward again.
-
-   The two SVG halves (left.svg ">" and right.svg "<") meet at
-   the centre to form the full X. Because their viewBox paths
-   extend ~5 px past the viewBox edges, we add overflow="visible"
-   to the SVG files and close the ~10-unit tip gap with
-   margin-left: var(--x-gap-fix) on the right half.
+   .x-wrap   DEPTH target — GSAP animates scale + opacity + y.
+             NO overflow:hidden so halves slide in freely.
+   .x-half   ASSEMBLY target — GSAP animates x inward only.
    ════════════════════════════════════════════════════════════════ */
 .x-stage {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: clamp(1rem, 2.5vh, 1.8rem);
   flex-shrink: 0;
   z-index: 1;
   position: relative;
 }
 
 .x-wrap {
-  /* Flex row: left half | right half, touching at tips */
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  /* NO overflow:hidden — halves extend beyond this box while sliding */
+  /* NO overflow:hidden — halves extend beyond while sliding */
   will-change: transform, opacity;
 }
 
 .x-half {
   display: block;
   height: var(--x-h);
-  width: auto;          /* preserves SVG aspect ratio (259:626) */
+  width: auto;
   user-select: none;
   pointer-events: none;
   will-change: transform, opacity;
 }
 
-/* Close the ~10 viewBox-unit gap between the two SVG tips */
+/* Close the ~10 viewBox-unit gap between SVG tips */
 .x-half--right {
   margin-left: var(--x-gap-fix);
 }
 
-/* ── Badges ──────────────────────────────────────────────────── */
-.badges {
-  display: flex;
-  gap: clamp(1.2rem, 2.2vw, 2.2rem);
-  align-items: center;
-  will-change: transform, opacity;
-}
-
-.badge {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.45rem;
-  color: var(--text-muted);
-  font-family: var(--font-display);
-  font-size: clamp(0.55rem, 0.9vw, 0.7rem);
-  font-weight: 600;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-}
-
-.badge svg {
-  width: clamp(14px, 1.8vw, 20px);
-  height: clamp(14px, 1.8vw, 20px);
-  stroke: var(--text-muted);
-  fill: none;
-  stroke-width: 1.8;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
 /* ════════════════════════════════════════════════════════════════
-   SIDE LABELS
+   FINAL SLIDE CONTENT
    ════════════════════════════════════════════════════════════════ */
-.side-label {
-  display: flex;
-  align-items: center;
-  gap: 0.65rem;
-  font-family: var(--font-display);
-  font-size: clamp(0.7rem, 1.25vw, 0.95rem);
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--label-color);
+.final-content {
+  text-align: center;
+  max-width: 520px;
   will-change: transform, opacity;
 }
 
-.side-label--left  { justify-content: flex-end; }
-.side-label--right { justify-content: flex-start; }
-
-.arrow-icon {
-  width: clamp(12px, 1.6vw, 18px);
-  height: clamp(12px, 1.6vw, 18px);
-  stroke: rgba(255,255,255,.4);
-  fill: none;
-  stroke-width: 2;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  flex-shrink: 0;
+.final-eyebrow {
+  font-family: var(--font-body);
+  font-size: clamp(0.7rem, 1.15vw, 0.88rem);
+  font-weight: 400;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 1.1rem;
 }
 
-.arrow-icon--flip { transform: rotate(180deg); }
+.final-heading {
+  font-family: var(--font-display);
+  font-size: clamp(2.6rem, 6.5vw, 5.2rem);
+  font-weight: 800;
+  line-height: 1.0;
+  color: var(--text);
+  letter-spacing: -0.02em;
+  margin-bottom: 2.4rem;
+}
+
+.final-cta {
+  display: inline-block;
+  background: var(--dot-active);
+  color: #fff;
+  font-family: var(--font-display);
+  font-size: clamp(0.72rem, 1.05vw, 0.84rem);
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  text-decoration: none;
+  padding: 0.9rem 2.2rem;
+  border-radius: 100px;
+  transition: background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.final-cta:hover {
+  background: #c02828;
+  box-shadow: 0 0 24px rgba(224, 53, 53, .5);
+}
 
 /* ════════════════════════════════════════════════════════════════
    DOT NAVIGATION — vertical rule + dots
@@ -288,8 +310,6 @@ body {
     justify-items: center;
     text-align: center;
   }
-  .side-label--left,
-  .side-label--right { justify-content: center; }
-  .arrow-icon,
-  .arrow-icon--flip  { display: none; }
+  .label-pill--left,
+  .label-pill--right { justify-self: center; }
 }
